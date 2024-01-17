@@ -16,8 +16,13 @@ async function pocOctok(config: Config) {
         state: 'open'
       })
       // eslint-disable-next-line github/no-then
-      .then(async issuesList => {
-        core.debug(JSON.stringify(issuesList))
+      .then(async response => {
+        const issues = response.data
+        core.debug('Open Issues:')
+        issues.forEach((issue) => {
+          core.debug(`- ${issue.title}`)
+        })
+
         return true
       })
       // eslint-disable-next-line github/no-then
