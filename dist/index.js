@@ -1621,8 +1621,13 @@ function pocOctok(config) {
                 state: 'open'
             })
                 // eslint-disable-next-line github/no-then
-                .then((issuesList) => __awaiter(this, void 0, void 0, function* () {
-                core.debug(JSON.stringify(issuesList));
+                .then((response) => __awaiter(this, void 0, void 0, function* () {
+                const issues = response.data;
+                core.debug('Open Issues:');
+                // eslint-disable-next-line github/array-foreach
+                issues.forEach(issue => {
+                    core.debug(`- ${issue.title}`);
+                });
                 return true;
             }))
                 // eslint-disable-next-line github/no-then

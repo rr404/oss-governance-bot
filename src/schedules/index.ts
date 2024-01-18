@@ -19,7 +19,8 @@ async function pocOctok(config: Config) {
       .then(async response => {
         const issues = response.data
         core.debug('Open Issues:')
-        issues.forEach((issue) => {
+        // eslint-disable-next-line github/array-foreach
+        issues.forEach(issue => {
           core.debug(`- ${issue.title}`)
         })
 

@@ -5,6 +5,7 @@
   "description": "Speed up issue triaging with automated chat-bot and chat-ops operations with quality control hierarchy",
   "main": "lib/main.js",
   "scripts": {
+    "testProto": "node ./src/proto.js",
     "build": "tsc",
     "format": "prettier --write **/*.ts",
     "lint": "eslint --fix src/**/*.ts",
