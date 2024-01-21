@@ -244,8 +244,17 @@ const GenericChatOps = t.intersection([
 ]);
 const ChatOps = t.union([GenericChatOps, LabelChatOps, CommentChatOps]);
 const CollaboratorAliasList = t.array(t.string);
+const DelayedActionOnTag = t.type({
+    fromTag: t.string,
+    delay: t.string,
+    resetOn: t.union([t.array(t.string), t.undefined])
+});
+const AutoStale = DelayedActionOnTag;
+const AutoClose = DelayedActionOnTag;
 const Automations = t.partial({
-    autoAssignAnyFrom: CollaboratorAliasList
+    autoAssignAnyFrom: CollaboratorAliasList,
+    autoStale: AutoStale,
+    autoClose: AutoClose
 });
 const Governance = t.partial({
     labels: t.array(Label),
@@ -289,6 +298,18 @@ function getConfig(client, configPath) {
     });
 }
 exports.getConfig = getConfig;
+
+
+/***/ }),
+
+/***/ 5105:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.LABEL_STALE = void 0;
+exports.LABEL_STALE = 'stale';
 
 
 /***/ }),
@@ -354,7 +375,7 @@ function getLabels() {
     return ((_a = contents === null || contents === void 0 ? void 0 : contents.labels) === null || _a === void 0 ? void 0 : _a.map(({ name }) => name)) || [];
 }
 exports.getLabels = getLabels;
-function addLabels(labels) {
+function addLabels(labels, issueNumber) {
     return __awaiter(this, void 0, void 0, function* () {
         if (!labels.length)
             return;
@@ -363,7 +384,7 @@ function addLabels(labels) {
         yield client.issues.addLabels({
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
-            issue_number: getNumber(),
+            issue_number: issueNumber || getNumber(),
             labels: labels
         });
     });
@@ -407,7 +428,7 @@ function getDetails() {
     details += `You can check out my [manifest file](${repoUrl}/blob/${branch}/${configPath}) to understand my behavior and what I can do.`;
     details += ' ';
     details +=
-        'If you want to use this for your project, you can check out the [BirthdayResearch/oss-governance-bot](https://github.com/BirthdayResearch/oss-governance-bot) repository.';
+        'If you want to use this for your project, you can check out the forked project [rr404/oss-governance-bot](https://github.com/rr404/oss-governance-bot) repository.';
     details += '\n\n';
     details += '</details>';
     return details;
@@ -443,11 +464,11 @@ function postComment(body) {
     });
 }
 exports.postComment = postComment;
-function patchIssue(changes) {
+function patchIssue(changes, issueNumber) {
     return __awaiter(this, void 0, void 0, function* () {
         core.info('github-client: patchIssue');
         const client = initClient();
-        yield client.issues.update(Object.assign({ owner: github.context.repo.owner, repo: github.context.repo.repo, issue_number: getNumber() }, changes));
+        yield client.issues.update(Object.assign({ owner: github.context.repo.owner, repo: github.context.repo.repo, issue_number: issueNumber || getNumber() }, changes));
     });
 }
 exports.patchIssue = patchIssue;
@@ -713,6 +734,45 @@ function default_1(assigneesList) {
         const assigneeIndex = ((_a = github_1.getNumber()) !== null && _a !== void 0 ? _a : 0) % assignees.length;
         core.debug(''.concat('Index ', assigneeIndex.toString(), ' // About to assign to @', assignees[assigneeIndex]));
         yield github_1.assign([assignees[assigneeIndex]]);
+    });
+}
+exports["default"] = default_1;
+
+
+/***/ }),
+
+/***/ 242:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const github_1 = __nccwpck_require__(5928);
+const utils_1 = __nccwpck_require__(918);
+const constants_1 = __nccwpck_require__(5105);
+function default_1(governance) {
+    var _a, _b;
+    return __awaiter(this, void 0, void 0, function* () {
+        // Unstale
+        if ((_b = (_a = governance.automations) === null || _a === void 0 ? void 0 : _a.autoStale) === null || _b === void 0 ? void 0 : _b.resetOn) {
+            for (const resetEventsActions of governance.automations.autoStale.resetOn) {
+                const [event = '', action = undefined, _ = []] = resetEventsActions.split('/');
+                if (utils_1.eventIs(event, action ? [action] : undefined)) {
+                    github_1.removeLabels([constants_1.LABEL_STALE]);
+                    // ? other action ? notification ?
+                    break;
+                }
+            }
+        }
     });
 }
 exports["default"] = default_1;
@@ -1001,6 +1061,7 @@ const assign_1 = __importDefault(__nccwpck_require__(7357));
 const review_1 = __importDefault(__nccwpck_require__(2450));
 const label_2 = __importDefault(__nccwpck_require__(2251));
 const assignAnyFrom_1 = __importDefault(__nccwpck_require__(2737));
+const resetStale_1 = __importDefault(__nccwpck_require__(242));
 const ignore_1 = __nccwpck_require__(1938);
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
@@ -1055,11 +1116,12 @@ function processChatOps(chatOps, commands) {
 function processAutomations(governance) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
+        // Auto Assign
         const possibleAssignees = (_b = (_a = governance.automations) === null || _a === void 0 ? void 0 : _a.autoAssignAnyFrom) !== null && _b !== void 0 ? _b : [
             '@'.concat(github.context.repo.owner)
         ];
-        core.info('    > autoAssign Posibilities: '.concat(JSON.stringify(possibleAssignees)));
         yield assignAnyFrom_1.default(possibleAssignees);
+        yield resetStale_1.default(governance);
     });
 }
 function default_1(governance, commands) {
@@ -1606,27 +1668,69 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const github_1 = __nccwpck_require__(5928);
+const constants_1 = __nccwpck_require__(5105);
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
-function pocOctok(config) {
+const ACTION_STALE = 'stale';
+const ACTION_CLOSE = 'close';
+function autoStaleAndClose(config) {
+    var _a, _b, _c, _d;
     return __awaiter(this, void 0, void 0, function* () {
-        core.info('Starting pocOtctok');
+        core.info('Starting autoStaleAndClose');
         const client = github_1.initClient();
-        if (config.issue) {
-            core.info('Handling issue');
+        if (((_b = (_a = config.issue) === null || _a === void 0 ? void 0 : _a.automations) === null || _b === void 0 ? void 0 : _b.autoStale) || ((_d = (_c = config.issue) === null || _c === void 0 ? void 0 : _c.automations) === null || _d === void 0 ? void 0 : _d.autoClose)) {
+            core.info(' > Handling issue');
             client.issues
                 .listForRepo({
                 owner: github.context.repo.owner,
                 repo: github.context.repo.repo,
-                state: 'open'
+                state: 'open',
+                labels: 'provide more details, stale'
             })
                 // eslint-disable-next-line github/no-then
                 .then((response) => __awaiter(this, void 0, void 0, function* () {
                 const issues = response.data;
-                core.debug('Open Issues:');
+                const ms = __nccwpck_require__(900);
+                const now = new Date();
+                const actionsForIssues = {};
                 // eslint-disable-next-line github/array-foreach
                 issues.forEach(issue => {
+                    var _a, _b, _c, _d, _e, _f;
                     core.debug(`- ${issue.title}`);
+                    const issueUpdatedAt = new Date(issue.updated_at);
+                    const issueInactivityPeriod = now.getTime() - issueUpdatedAt.getTime(); // Difference in seconds
+                    if ((_b = (_a = config.issue) === null || _a === void 0 ? void 0 : _a.automations) === null || _b === void 0 ? void 0 : _b.autoStale) {
+                        const autoStaleActions = config.issue.automations.autoStale;
+                        const labelsForClose = autoStaleActions.fromTag.split(',');
+                        const hasTagOnIssue = (_c = issue.labels) === null || _c === void 0 ? void 0 : _c.some(label => labelsForClose.indexOf(label === null || label === void 0 ? void 0 : label.name) !== -1);
+                        if (hasTagOnIssue) {
+                            const thresholdBeforeStale = ms(autoStaleActions.delay) / 1000; // threshold for stale in seconds
+                            if (issueInactivityPeriod > thresholdBeforeStale) {
+                                actionsForIssues[issue.number] = ACTION_STALE;
+                            }
+                        }
+                    }
+                    if ((_e = (_d = config.issue) === null || _d === void 0 ? void 0 : _d.automations) === null || _e === void 0 ? void 0 : _e.autoClose) {
+                        const autoCloseActions = config.issue.automations.autoClose;
+                        const labelsForClose = autoCloseActions.fromTag.split(',');
+                        const hasTagOnIssue = (_f = issue.labels) === null || _f === void 0 ? void 0 : _f.some(label => labelsForClose.indexOf(label === null || label === void 0 ? void 0 : label.name) !== -1);
+                        if (hasTagOnIssue) {
+                            const thresholdBeforeStale = ms(autoCloseActions.delay) / 1000; // threshold for stale in seconds
+                            if (issueInactivityPeriod > thresholdBeforeStale) {
+                                actionsForIssues[issue.number] = ACTION_CLOSE;
+                            }
+                        }
+                    }
+                    for (const [issueNumber, action] of Object.entries(actionsForIssues)) {
+                        switch (action) {
+                            case ACTION_CLOSE:
+                                performIssueClose(parseInt(issueNumber));
+                                break;
+                            case ACTION_STALE:
+                                performIssueStale(parseInt(issueNumber));
+                                break;
+                        }
+                    }
                 });
                 return true;
             }))
@@ -1636,19 +1740,82 @@ function pocOctok(config) {
                 core.setFailed(error);
             });
         }
-        if (config.pull_request) {
-            core.info('Handling PR');
-        }
-        core.info('Completed pocOtctok');
-        return true;
+    });
+}
+function performIssueStale(issueNumber) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield github_1.postComment("@AUTHOR: This issue has been tagged 'stale', you might need to perform an action to make the issue go forward.");
+        yield github_1.addLabels([constants_1.LABEL_STALE], issueNumber);
+    });
+}
+function performIssueClose(issueNumber) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield github_1.postComment('@AUTHOR: This issue will be closed as it has been stale for a while');
+        yield github_1.patchIssue({ state: 'closed' }, issueNumber);
     });
 }
 function default_1(config) {
     return __awaiter(this, void 0, void 0, function* () {
-        yield pocOctok(config);
+        yield autoStaleAndClose(config);
     });
 }
 exports["default"] = default_1;
+
+
+/***/ }),
+
+/***/ 918:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.eventIs = exports.getGovernanceConfig = void 0;
+const github = __importStar(__nccwpck_require__(5438));
+const core = __importStar(__nccwpck_require__(2186));
+const config_1 = __nccwpck_require__(88);
+const github_1 = __nccwpck_require__(5928);
+function getGovernanceConfig() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const configPath = core.getInput('config-path', { required: true });
+        const config = yield config_1.getConfig(github_1.initClient(), configPath);
+        return config;
+    });
+}
+exports.getGovernanceConfig = getGovernanceConfig;
+function eventIs(eventName, actions) {
+    return (github.context.eventName === eventName &&
+        (!actions || actions.includes(github.context.payload.action)));
+}
+exports.eventIs = eventIs;
 
 
 /***/ }),
@@ -25345,6 +25512,175 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
   instanceOf: Date,
   represent: representYamlTimestamp
 });
+
+
+/***/ }),
+
+/***/ 900:
+/***/ ((module) => {
+
+/**
+ * Helpers.
+ */
+
+var s = 1000;
+var m = s * 60;
+var h = m * 60;
+var d = h * 24;
+var w = d * 7;
+var y = d * 365.25;
+
+/**
+ * Parse or format the given `val`.
+ *
+ * Options:
+ *
+ *  - `long` verbose formatting [false]
+ *
+ * @param {String|Number} val
+ * @param {Object} [options]
+ * @throws {Error} throw an error if val is not a non-empty string or a number
+ * @return {String|Number}
+ * @api public
+ */
+
+module.exports = function(val, options) {
+  options = options || {};
+  var type = typeof val;
+  if (type === 'string' && val.length > 0) {
+    return parse(val);
+  } else if (type === 'number' && isFinite(val)) {
+    return options.long ? fmtLong(val) : fmtShort(val);
+  }
+  throw new Error(
+    'val is not a non-empty string or a valid number. val=' +
+      JSON.stringify(val)
+  );
+};
+
+/**
+ * Parse the given `str` and return milliseconds.
+ *
+ * @param {String} str
+ * @return {Number}
+ * @api private
+ */
+
+function parse(str) {
+  str = String(str);
+  if (str.length > 100) {
+    return;
+  }
+  var match = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(
+    str
+  );
+  if (!match) {
+    return;
+  }
+  var n = parseFloat(match[1]);
+  var type = (match[2] || 'ms').toLowerCase();
+  switch (type) {
+    case 'years':
+    case 'year':
+    case 'yrs':
+    case 'yr':
+    case 'y':
+      return n * y;
+    case 'weeks':
+    case 'week':
+    case 'w':
+      return n * w;
+    case 'days':
+    case 'day':
+    case 'd':
+      return n * d;
+    case 'hours':
+    case 'hour':
+    case 'hrs':
+    case 'hr':
+    case 'h':
+      return n * h;
+    case 'minutes':
+    case 'minute':
+    case 'mins':
+    case 'min':
+    case 'm':
+      return n * m;
+    case 'seconds':
+    case 'second':
+    case 'secs':
+    case 'sec':
+    case 's':
+      return n * s;
+    case 'milliseconds':
+    case 'millisecond':
+    case 'msecs':
+    case 'msec':
+    case 'ms':
+      return n;
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Short format for `ms`.
+ *
+ * @param {Number} ms
+ * @return {String}
+ * @api private
+ */
+
+function fmtShort(ms) {
+  var msAbs = Math.abs(ms);
+  if (msAbs >= d) {
+    return Math.round(ms / d) + 'd';
+  }
+  if (msAbs >= h) {
+    return Math.round(ms / h) + 'h';
+  }
+  if (msAbs >= m) {
+    return Math.round(ms / m) + 'm';
+  }
+  if (msAbs >= s) {
+    return Math.round(ms / s) + 's';
+  }
+  return ms + 'ms';
+}
+
+/**
+ * Long format for `ms`.
+ *
+ * @param {Number} ms
+ * @return {String}
+ * @api private
+ */
+
+function fmtLong(ms) {
+  var msAbs = Math.abs(ms);
+  if (msAbs >= d) {
+    return plural(ms, msAbs, d, 'day');
+  }
+  if (msAbs >= h) {
+    return plural(ms, msAbs, h, 'hour');
+  }
+  if (msAbs >= m) {
+    return plural(ms, msAbs, m, 'minute');
+  }
+  if (msAbs >= s) {
+    return plural(ms, msAbs, s, 'second');
+  }
+  return ms + ' ms';
+}
+
+/**
+ * Pluralization helper.
+ */
+
+function plural(ms, msAbs, n, name) {
+  var isPlural = msAbs >= n * 1.5;
+  return Math.round(ms / n) + ' ' + name + (isPlural ? 's' : '');
+}
 
 
 /***/ }),

@@ -28,7 +28,10 @@ export function getLabels(): string[] {
   return contents?.labels?.map(({name}: {name: string}) => name) || []
 }
 
-export async function addLabels(labels: string[]): Promise<void> {
+export async function addLabels(
+  labels: string[],
+  issueNumber?: number
+): Promise<void> {
   if (!labels.length) return
 
   core.info('github-client: addLabels')
@@ -37,7 +40,7 @@ export async function addLabels(labels: string[]): Promise<void> {
   await client.issues.addLabels({
     owner: github.context.repo.owner,
     repo: github.context.repo.repo,
-    issue_number: getNumber()!,
+    issue_number: issueNumber || getNumber()!,
     labels: labels
   })
 }
@@ -86,7 +89,7 @@ function getDetails(): string {
   details += `You can check out my [manifest file](${repoUrl}/blob/${branch}/${configPath}) to understand my behavior and what I can do.`
   details += ' '
   details +=
-    'If you want to use this for your project, you can check out the [BirthdayResearch/oss-governance-bot](https://github.com/BirthdayResearch/oss-governance-bot) repository.'
+    'If you want to use this for your project, you can check out the forked project [rr404/oss-governance-bot](https://github.com/rr404/oss-governance-bot) repository.'
   details += '\n\n'
   details += '</details>'
   return details
@@ -122,14 +125,14 @@ export async function postComment(body: string) {
   })
 }
 
-export async function patchIssue(changes: any) {
+export async function patchIssue(changes: any, issueNumber?: number) {
   core.info('github-client: patchIssue')
   const client = initClient()
 
   await client.issues.update({
     owner: github.context.repo.owner,
     repo: github.context.repo.repo,
-    issue_number: getNumber()!,
+    issue_number: issueNumber || getNumber()!,
     ...changes
   })
 }

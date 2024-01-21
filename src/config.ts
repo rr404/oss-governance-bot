@@ -114,8 +114,19 @@ const ChatOps = t.union([GenericChatOps, LabelChatOps, CommentChatOps])
 
 const CollaboratorAliasList = t.array(t.string)
 
+const DelayedActionOnTag = t.type({
+  fromTag: t.string,
+  delay: t.string,
+  resetOn: t.union([t.array(t.string), t.undefined])
+})
+
+const AutoStale = DelayedActionOnTag
+const AutoClose = DelayedActionOnTag
+
 const Automations = t.partial({
-  autoAssignAnyFrom: CollaboratorAliasList
+  autoAssignAnyFrom: CollaboratorAliasList,
+  autoStale: AutoStale,
+  autoClose: AutoClose
 })
 
 const Governance = t.partial({

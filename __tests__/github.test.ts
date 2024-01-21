@@ -101,7 +101,7 @@ it('Organization: should format details as expected', async () => {
       '\n' +
       '<details><summary>Details</summary>' +
       '\n\n' +
-      'I am a bot created to help the [Codertocat](https://github.com/Codertocat/) developers manage community feedback and contributions. You can check out my [manifest file](https://github.com/Codertocat/Hello-World/blob/main/config-path/location.yml) to understand my behavior and what I can do. If you want to use this for your project, you can check out the [BirthdayResearch/oss-governance-bot](https://github.com/BirthdayResearch/oss-governance-bot) repository.' +
+      'I am a bot created to help the [Codertocat](https://github.com/Codertocat/) developers manage community feedback and contributions. You can check out my [manifest file](https://github.com/Codertocat/Hello-World/blob/main/config-path/location.yml) to understand my behavior and what I can do. If you want to use this for your project, you can check out the forked project [rr404/oss-governance-bot](https://github.com/rr404/oss-governance-bot) repository.' +
       '\n\n' +
       '</details>'
   })
@@ -132,7 +132,7 @@ it('User: should format details as expected', async () => {
       '\n' +
       '<details><summary>Details</summary>' +
       '\n\n' +
-      'I am a bot created to help [Codertocat](https://github.com/Codertocat/) manage community feedback and contributions. You can check out my [manifest file](https://github.com/Codertocat/Hello-World/blob/main/config-path/location.yml) to understand my behavior and what I can do. If you want to use this for your project, you can check out the [BirthdayResearch/oss-governance-bot](https://github.com/BirthdayResearch/oss-governance-bot) repository.' +
+      'I am a bot created to help [Codertocat](https://github.com/Codertocat/) manage community feedback and contributions. You can check out my [manifest file](https://github.com/Codertocat/Hello-World/blob/main/config-path/location.yml) to understand my behavior and what I can do. If you want to use this for your project, you can check out the forked project [rr404/oss-governance-bot](https://github.com/rr404/oss-governance-bot) repository.' +
       '\n\n' +
       '</details>'
   })

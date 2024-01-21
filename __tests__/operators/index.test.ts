@@ -174,7 +174,7 @@ describe('chat-ops', () => {
   });
 })
 
-describe('chat-ops', () => {
+describe('automations', () => {
   it('should not have error', async () => {
     await operations({
       automations: { autoAssignAnyFrom: ['@rr404', '@rr404', '@rr404'] }

@@ -9,6 +9,7 @@ import chatOpsAssign from './chat-ops/assign'
 import chatOpsReview from './chat-ops/review'
 import chatOpsLabel from './chat-ops/label'
 import autoAssignAnyFrom from './automations/assignAnyFrom'
+import resetStale from './automations/resetStale'
 import {isCreatedOpened} from '../rules/ignore'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
@@ -67,13 +68,12 @@ async function processChatOps(
 }
 
 async function processAutomations(governance: Governance) {
+  // Auto Assign
   const possibleAssignees = governance.automations?.autoAssignAnyFrom ?? [
     '@'.concat(github.context.repo.owner)
   ]
-  core.info(
-    '    > autoAssign Posibilities: '.concat(JSON.stringify(possibleAssignees))
-  )
   await autoAssignAnyFrom(possibleAssignees)
+  await resetStale(governance)
 }
 
 export default async function (
