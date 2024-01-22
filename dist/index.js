@@ -1670,75 +1670,65 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const github_1 = __nccwpck_require__(5928);
 const constants_1 = __nccwpck_require__(5105);
 const core = __importStar(__nccwpck_require__(2186));
-const github = __importStar(__nccwpck_require__(5438));
 const ACTION_STALE = 'stale';
 const ACTION_CLOSE = 'close';
 function autoStaleAndClose(config) {
-    var _a, _b, _c, _d;
+    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         core.info('Starting autoStaleAndClose');
         const client = github_1.initClient();
-        if (((_b = (_a = config.issue) === null || _a === void 0 ? void 0 : _a.automations) === null || _b === void 0 ? void 0 : _b.autoStale) || ((_d = (_c = config.issue) === null || _c === void 0 ? void 0 : _c.automations) === null || _d === void 0 ? void 0 : _d.autoClose)) {
-            core.info(' > Handling issue');
-            client.issues
-                .listForRepo({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
+        const ms = __nccwpck_require__(900);
+        const now = new Date();
+        const actionsForIssues = {};
+        if ((_b = (_a = config.issue) === null || _a === void 0 ? void 0 : _a.automations) === null || _b === void 0 ? void 0 : _b.autoStale) {
+            core.info(' > Checking for Stale issues');
+            const autoStaleActions = config.issue.automations.autoStale;
+            const thresholdBeforeStale = ms(autoStaleActions.delay) / 1000; // threshold for stale in seconds
+            core.debug(`- thresholdBeforeStale ${thresholdBeforeStale}s`);
+            //LF stale
+            let issuesListResponse = yield client.issues.listForRepo({
+                owner: 'rr404',
+                repo: 'governanceTest',
                 state: 'open',
-                labels: 'provide more details, stale'
-            })
-                // eslint-disable-next-line github/no-then
-                .then((response) => __awaiter(this, void 0, void 0, function* () {
-                const issues = response.data;
-                const ms = __nccwpck_require__(900);
-                const now = new Date();
-                const actionsForIssues = {};
-                // eslint-disable-next-line github/array-foreach
-                issues.forEach(issue => {
-                    var _a, _b, _c, _d, _e, _f;
-                    core.debug(`- ${issue.title}`);
-                    const issueUpdatedAt = new Date(issue.updated_at);
-                    const issueInactivityPeriod = now.getTime() - issueUpdatedAt.getTime(); // Difference in seconds
-                    if ((_b = (_a = config.issue) === null || _a === void 0 ? void 0 : _a.automations) === null || _b === void 0 ? void 0 : _b.autoStale) {
-                        const autoStaleActions = config.issue.automations.autoStale;
-                        const labelsForClose = autoStaleActions.fromTag.split(',');
-                        const hasTagOnIssue = (_c = issue.labels) === null || _c === void 0 ? void 0 : _c.some(label => labelsForClose.indexOf(label === null || label === void 0 ? void 0 : label.name) !== -1);
-                        if (hasTagOnIssue) {
-                            const thresholdBeforeStale = ms(autoStaleActions.delay) / 1000; // threshold for stale in seconds
-                            if (issueInactivityPeriod > thresholdBeforeStale) {
-                                actionsForIssues[issue.number] = ACTION_STALE;
-                            }
-                        }
-                    }
-                    if ((_e = (_d = config.issue) === null || _d === void 0 ? void 0 : _d.automations) === null || _e === void 0 ? void 0 : _e.autoClose) {
-                        const autoCloseActions = config.issue.automations.autoClose;
-                        const labelsForClose = autoCloseActions.fromTag.split(',');
-                        const hasTagOnIssue = (_f = issue.labels) === null || _f === void 0 ? void 0 : _f.some(label => labelsForClose.indexOf(label === null || label === void 0 ? void 0 : label.name) !== -1);
-                        if (hasTagOnIssue) {
-                            const thresholdBeforeStale = ms(autoCloseActions.delay) / 1000; // threshold for stale in seconds
-                            if (issueInactivityPeriod > thresholdBeforeStale) {
-                                actionsForIssues[issue.number] = ACTION_CLOSE;
-                            }
-                        }
-                    }
-                    for (const [issueNumber, action] of Object.entries(actionsForIssues)) {
-                        switch (action) {
-                            case ACTION_CLOSE:
-                                performIssueClose(parseInt(issueNumber));
-                                break;
-                            case ACTION_STALE:
-                                performIssueStale(parseInt(issueNumber));
-                                break;
-                        }
-                    }
-                });
-                return true;
-            }))
-                // eslint-disable-next-line github/no-then
-                .catch(error => {
-                core.error(error);
-                core.setFailed(error);
+                labels: `provide more details` //retrieve from config
             });
+            let issuesList = issuesListResponse.data;
+            // eslint-disable-next-line github/array-foreach
+            issuesList.forEach(issue => {
+                const issueUpdatedAt = new Date(issue.updated_at);
+                const issueInactivityPeriod = now.getTime() - issueUpdatedAt.getTime(); // Difference in seconds
+                core.debug(`- ${issue.title} inactive for ${issueInactivityPeriod}s`);
+                if (issueInactivityPeriod > thresholdBeforeStale) {
+                    actionsForIssues[issue.number] = ACTION_STALE;
+                }
+            });
+            //LF close
+            issuesListResponse = yield client.issues.listForRepo({
+                owner: 'rr404',
+                repo: 'governanceTest',
+                state: 'open',
+                labels: `stale` //retrieve from config
+            });
+            issuesList = issuesListResponse.data;
+            // eslint-disable-next-line github/array-foreach
+            issuesList.forEach(issue => {
+                const issueUpdatedAt = new Date(issue.updated_at);
+                const issueInactivityPeriod = now.getTime() - issueUpdatedAt.getTime(); // Difference in seconds
+                core.debug(`- ${issue.title} inactive for ${issueInactivityPeriod}s`);
+                if (issueInactivityPeriod > thresholdBeforeStale) {
+                    actionsForIssues[issue.number] = ACTION_CLOSE;
+                }
+            });
+            for (const [issueNumber, action] of Object.entries(actionsForIssues)) {
+                switch (action) {
+                    case ACTION_CLOSE:
+                        performIssueClose(parseInt(issueNumber));
+                        break;
+                    case ACTION_STALE:
+                        performIssueStale(parseInt(issueNumber));
+                        break;
+                }
+            }
         }
     });
 }

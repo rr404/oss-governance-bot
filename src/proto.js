@@ -36,46 +36,125 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 exports.__esModule = true;
+exports.initClient = void 0;
+var github_1 = require("./github");
+var constants_1 = require("./constants");
+var core = require("@actions/core");
 var github = require("@actions/github");
-function listOpenIssues() {
+var ACTION_STALE = 'stale';
+var ACTION_CLOSE = 'close';
+function initClient(token) {
+    if (token === void 0) { token = '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'; }
+    return github.getOctokit(token);
+}
+exports.initClient = initClient;
+function autoStaleAndClose(config) {
+    var _a, _b;
     return __awaiter(this, void 0, void 0, function () {
-        var octokit, context, owner, repo, response, issues, ms_1, now_1, error_1;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
+        var client, ms, now, actionsForIssues, autoStaleActions, thresholdBeforeStale_1, issuesListResponse, issuesList, _i, _c, _d, issueNumber, action;
+        return __generator(this, function (_e) {
+            switch (_e.label) {
                 case 0:
-                    _a.trys.push([0, 2, , 3]);
-                    octokit = github.getOctokit('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');
-                    context = github.context;
-                    owner = 'rr404';
-                    repo = 'governanceTest';
-                    return [4 /*yield*/, octokit.issues.listForRepo({
-                            owner: owner,
-                            repo: repo,
+                    core.info('Starting autoStaleAndClose');
+                    client = initClient();
+                    ms = require('ms');
+                    now = new Date();
+                    actionsForIssues = {};
+                    if (!((_b = (_a = config.issue) === null || _a === void 0 ? void 0 : _a.automations) === null || _b === void 0 ? void 0 : _b.autoStale)) return [3 /*break*/, 3];
+                    core.info(' > Checking for Stale issues');
+                    autoStaleActions = config.issue.automations.autoStale;
+                    thresholdBeforeStale_1 = ms(autoStaleActions.delay) / 1000 // threshold for stale in seconds
+                    ;
+                    core.debug("- thresholdBeforeStale " + thresholdBeforeStale_1 + "s");
+                    return [4 /*yield*/, client.issues.listForRepo({
+                            owner: 'rr404',
+                            repo: 'governanceTest',
                             state: 'open',
-                            labels: 'provide more details'
+                            labels: "provide more details" //retrieve from config
                         })];
                 case 1:
-                    response = _a.sent();
-                    issues = response.data;
-                    ms_1 = require('ms');
-                    now_1 = new Date();
-                    console.log('Open Issues:');
-                    issues.forEach(function (issue) {
-                        var updatedAt = new Date(issue.updated_at);
-                        var timeDifference = (now_1.getTime() - updatedAt.getTime()); // Difference in seconds
-                        var thresholdBeforeStale = ms_1('3m30s') / 1000; // threshold for stale in seconds
-                        console.log("- " + issue.title);
-                        console.log("- " + timeDifference + " >? " + thresholdBeforeStale);
+                    issuesListResponse = _e.sent();
+                    issuesList = issuesListResponse.data;
+                    // eslint-disable-next-line github/array-foreach
+                    issuesList.forEach(function (issue) {
+                        var issueUpdatedAt = new Date(issue.updated_at);
+                        var issueInactivityPeriod = now.getTime() - issueUpdatedAt.getTime(); // Difference in seconds
+                        core.debug("- " + issue.title + " inactive for " + issueInactivityPeriod + "s");
+                        if (issueInactivityPeriod > thresholdBeforeStale_1) {
+                            actionsForIssues[issue.number] = ACTION_STALE;
+                        }
                     });
-                    return [3 /*break*/, 3];
+                    return [4 /*yield*/, client.issues.listForRepo({
+                            owner: 'rr404',
+                            repo: 'governanceTest',
+                            state: 'open',
+                            labels: "stale" //retrieve from config
+                        })];
                 case 2:
-                    error_1 = _a.sent();
-                    console.error('Error listing open issues:', error_1.message);
-                    return [3 /*break*/, 3];
+                    //LF close
+                    issuesListResponse = _e.sent();
+                    issuesList = issuesListResponse.data;
+                    // eslint-disable-next-line github/array-foreach
+                    issuesList.forEach(function (issue) {
+                        var issueUpdatedAt = new Date(issue.updated_at);
+                        var issueInactivityPeriod = now.getTime() - issueUpdatedAt.getTime(); // Difference in seconds
+                        core.debug("- " + issue.title + " inactive for " + issueInactivityPeriod + "s");
+                        if (issueInactivityPeriod > thresholdBeforeStale_1) {
+                            actionsForIssues[issue.number] = ACTION_CLOSE;
+                        }
+                    });
+                    for (_i = 0, _c = Object.entries(actionsForIssues); _i < _c.length; _i++) {
+                        _d = _c[_i], issueNumber = _d[0], action = _d[1];
+                        switch (action) {
+                            case ACTION_CLOSE:
+                                performIssueClose(parseInt(issueNumber));
+                                break;
+                            case ACTION_STALE:
+                                performIssueStale(parseInt(issueNumber));
+                                break;
+                        }
+                    }
+                    _e.label = 3;
                 case 3: return [2 /*return*/];
             }
         });
     });
 }
-listOpenIssues();
+function performIssueStale(issueNumber) {
+    return __awaiter(this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, github_1.postComment("@AUTHOR: This issue has been tagged 'stale', you might need to perform an action to make the issue go forward.")];
+                case 1:
+                    _a.sent();
+                    return [4 /*yield*/, github_1.addLabels([constants_1.LABEL_STALE], issueNumber)];
+                case 2:
+                    _a.sent();
+                    return [2 /*return*/];
+            }
+        });
+    });
+}
+function performIssueClose(issueNumber) {
+    return __awaiter(this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, github_1.postComment('@AUTHOR: This issue will be closed as it has been stale for a while')];
+                case 1:
+                    _a.sent();
+                    return [4 /*yield*/, github_1.patchIssue({ state: 'closed' }, issueNumber)];
+                case 2:
+                    _a.sent();
+                    return [2 /*return*/];
+            }
+        });
+    });
+}
+var globalConfig = {
+    issue: {
+        automations: { autoStale: { fromTag: 'provide more details', delay: '3m', resetOn: ['issue_comment/created'] } }
+    },
+    version: 'v1'
+};
+autoStaleAndClose(globalConfig);
 //# sourceMappingURL=proto.js.map
