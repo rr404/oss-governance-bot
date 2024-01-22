@@ -14,6 +14,11 @@ export function initClient(
   return github.getOctokit(token)
 }
 
+function testor(issueNumber?: number) {
+  // eslint-disable-next-line no-console
+  console.log(issueNumber! || 424242)
+}
+
 async function autoStaleAndClose(config: Config) {
   core.info('Starting autoStaleAndClose')
   const client = initClient()
@@ -104,4 +109,7 @@ const globalConfig: Config = {
   },
   version: 'v1'
 }
+testor()
+testor(12)
+testor(0)
 autoStaleAndClose(globalConfig)

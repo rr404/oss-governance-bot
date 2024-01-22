@@ -447,7 +447,7 @@ function getIssueUserLogin() {
  *
  * @param body comment
  */
-function postComment(body) {
+function postComment(body, issueNumber) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
         core.info('github-client: postComment');
@@ -458,7 +458,7 @@ function postComment(body) {
         yield client.issues.createComment({
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
-            issue_number: getNumber(),
+            issue_number: issueNumber || getNumber(),
             body: body
         });
     });
@@ -746,6 +746,25 @@ exports["default"] = default_1;
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -756,6 +775,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const core = __importStar(__nccwpck_require__(2186));
 const github_1 = __nccwpck_require__(5928);
 const utils_1 = __nccwpck_require__(918);
 const constants_1 = __nccwpck_require__(5105);
@@ -767,6 +787,7 @@ function default_1(governance) {
             for (const resetEventsActions of governance.automations.autoStale.resetOn) {
                 const [event = '', action = undefined, _ = []] = resetEventsActions.split('/');
                 if (utils_1.eventIs(event, action ? [action] : undefined)) {
+                    core.info(`New activity. Removing stale label`);
                     github_1.removeLabels([constants_1.LABEL_STALE]);
                     // ? other action ? notification ?
                     break;
@@ -1734,13 +1755,13 @@ function autoStaleAndClose(config) {
 }
 function performIssueStale(issueNumber) {
     return __awaiter(this, void 0, void 0, function* () {
-        yield github_1.postComment("@AUTHOR: This issue has been tagged 'stale', you might need to perform an action to make the issue go forward.");
+        yield github_1.postComment("@AUTHOR: This issue has been tagged 'stale', you might need to perform an action to make the issue go forward.", issueNumber);
         yield github_1.addLabels([constants_1.LABEL_STALE], issueNumber);
     });
 }
 function performIssueClose(issueNumber) {
     return __awaiter(this, void 0, void 0, function* () {
-        yield github_1.postComment('@AUTHOR: This issue will be closed as it has been stale for a while');
+        yield github_1.postComment('@AUTHOR: This issue will be closed as it has been stale for a while', issueNumber);
         yield github_1.patchIssue({ state: 'closed' }, issueNumber);
     });
 }

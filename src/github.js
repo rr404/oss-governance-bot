@@ -178,7 +178,7 @@ function getIssueUserLogin() {
  *
  * @param body comment
  */
-function postComment(body) {
+function postComment(body, issueNumber) {
     var _a;
     return __awaiter(this, void 0, void 0, function () {
         var client;
@@ -193,7 +193,7 @@ function postComment(body) {
                     return [4 /*yield*/, client.issues.createComment({
                             owner: github.context.repo.owner,
                             repo: github.context.repo.repo,
-                            issue_number: getNumber(),
+                            issue_number: issueNumber || getNumber(),
                             body: body
                         })];
                 case 1:

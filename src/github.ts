@@ -120,7 +120,7 @@ export async function postComment(body: string, issueNumber?: number) {
   await client.issues.createComment({
     owner: github.context.repo.owner,
     repo: github.context.repo.repo,
-    issue_number: issueNumber || getNumber(),
+    issue_number: issueNumber! || getNumber()!,
     body: body
   })
 }
@@ -132,7 +132,7 @@ export async function patchIssue(changes: any, issueNumber?: number) {
   await client.issues.update({
     owner: github.context.repo.owner,
     repo: github.context.repo.repo,
-    issue_number: issueNumber || getNumber()!,
+    issue_number: issueNumber! || getNumber()!,
     ...changes
   })
 }

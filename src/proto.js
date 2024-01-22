@@ -48,6 +48,10 @@ function initClient(token) {
     return github.getOctokit(token);
 }
 exports.initClient = initClient;
+function testor(issueNumber) {
+    // eslint-disable-next-line no-console
+    console.log(issueNumber || 424242);
+}
 function autoStaleAndClose(config) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function () {
@@ -152,9 +156,18 @@ function performIssueClose(issueNumber) {
 }
 var globalConfig = {
     issue: {
-        automations: { autoStale: { fromTag: 'provide more details', delay: '3m', resetOn: ['issue_comment/created'] } }
+        automations: {
+            autoStale: {
+                fromTag: 'provide more details',
+                delay: '3m',
+                resetOn: ['issue_comment/created']
+            }
+        }
     },
     version: 'v1'
 };
+testor();
+testor(12);
+testor(0);
 autoStaleAndClose(globalConfig);
 //# sourceMappingURL=proto.js.map
