@@ -109,7 +109,7 @@ function getIssueUserLogin(): string | undefined {
  *
  * @param body comment
  */
-export async function postComment(body: string) {
+export async function postComment(body: string, issueNumber?: number) {
   core.info('github-client: postComment')
   const client = initClient()
 
@@ -120,7 +120,7 @@ export async function postComment(body: string) {
   await client.issues.createComment({
     owner: github.context.repo.owner,
     repo: github.context.repo.repo,
-    issue_number: getNumber()!,
+    issue_number: issueNumber || getNumber(),
     body: body
   })
 }

@@ -72,14 +72,16 @@ async function autoStaleAndClose(config: Config) {
 
 async function performIssueStale(issueNumber: number) {
   await postComment(
-    "@AUTHOR: This issue has been tagged 'stale', you might need to perform an action to make the issue go forward."
+    "@AUTHOR: This issue has been tagged 'stale', you might need to perform an action to make the issue go forward.",
+    issueNumber
   )
   await addLabels([LABEL_STALE], issueNumber)
 }
 
 async function performIssueClose(issueNumber: number) {
   await postComment(
-    '@AUTHOR: This issue will be closed as it has been stale for a while'
+    '@AUTHOR: This issue will be closed as it has been stale for a while',
+    issueNumber
   )
   await patchIssue({state: 'closed'}, issueNumber)
 }
