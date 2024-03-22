@@ -2,6 +2,7 @@ import {Config} from '../config'
 import {initClient, addLabels, postComment, patchIssue} from '../github'
 import {LABEL_STALE} from '../constants'
 import * as core from '@actions/core'
+import * as github from '@actions/github'
 
 const ACTION_STALE: string = 'stale'
 const ACTION_CLOSE: string = 'close'
@@ -21,10 +22,10 @@ async function autoStaleAndClose(config: Config) {
 
     //LF stale
     let issuesListResponse = await client.issues.listForRepo({
-      owner: 'rr404',
-      repo: 'governanceTest',
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
       state: 'open',
-      labels: `provide more details` //retrieve from config
+      labels: autoStaleActions.fromTag
     })
     let issuesList = issuesListResponse.data
     // eslint-disable-next-line github/array-foreach
@@ -37,24 +38,29 @@ async function autoStaleAndClose(config: Config) {
       }
     })
 
-    //LF close
-    issuesListResponse = await client.issues.listForRepo({
-      owner: 'rr404',
-      repo: 'governanceTest',
-      state: 'open',
-      labels: `stale` //retrieve from config
-    })
-    issuesList = issuesListResponse.data
+    if (config.issue?.automations?.autoClose) {
+      core.info(' > Checking for issues to close')
+      const autoCloseActions = config.issue.automations.autoClose
+      const thresholdBeforeClose = ms(autoCloseActions.delay) / 1000 // threshold for stale in seconds
+      //LF close
+      issuesListResponse = await client.issues.listForRepo({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        state: 'open',
+        labels: autoCloseActions.fromTag
+      })
+      issuesList = issuesListResponse.data
 
-    // eslint-disable-next-line github/array-foreach
-    issuesList.forEach(issue => {
-      const issueUpdatedAt = new Date(issue.updated_at)
-      const issueInactivityPeriod = now.getTime() - issueUpdatedAt.getTime() // Difference in seconds
-      core.debug(`- ${issue.title} inactive for ${issueInactivityPeriod}s`)
-      if (issueInactivityPeriod > thresholdBeforeStale) {
-        actionsForIssues[issue.number] = ACTION_CLOSE
-      }
-    })
+      // eslint-disable-next-line github/array-foreach
+      issuesList.forEach(issue => {
+        const issueUpdatedAt = new Date(issue.updated_at)
+        const issueInactivityPeriod = now.getTime() - issueUpdatedAt.getTime() // Difference in seconds
+        core.debug(`- ${issue.title} inactive for ${issueInactivityPeriod}s`)
+        if (issueInactivityPeriod > thresholdBeforeClose) {
+          actionsForIssues[issue.number] = ACTION_CLOSE
+        }
+      })
+    }
 
     for (const [issueNumber, action] of Object.entries(actionsForIssues)) {
       switch (action) {
