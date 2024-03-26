@@ -12,6 +12,7 @@ import {initClient} from './github'
  */
 export async function getGovernance(): Promise<Governance | undefined> {
   const configPath = core.getInput('config-path', {required: true})
+  core.debug(`    > configPath = ${configPath}`)
   const config: Config = await getConfig(initClient(), configPath)
   core.debug('Config is: ')
   core.debug(JSON.stringify(config))
