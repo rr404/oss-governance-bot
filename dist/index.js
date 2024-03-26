@@ -396,6 +396,7 @@ function removeLabels(labels) {
         if (!labels.length)
             return;
         core.info('github-client: removeLabels');
+        core.debug(`Removing labels: ${labels.join(', ')}`);
         const client = initClient();
         yield Promise.all(labels.map(name => client.issues.removeLabel({
             owner: github.context.repo.owner,

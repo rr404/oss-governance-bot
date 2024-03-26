@@ -50,6 +50,7 @@ export async function removeLabels(labels: string[]): Promise<void> {
   if (!labels.length) return
 
   core.info('github-client: removeLabels')
+  core.debug(`Removing labels: ${labels.join(', ')}`)
   const client = initClient()
 
   await Promise.all(
