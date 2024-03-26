@@ -800,6 +800,9 @@ function default_1(governance) {
     return __awaiter(this, void 0, void 0, function* () {
         // Unstale
         if ((_b = (_a = governance.automations) === null || _a === void 0 ? void 0 : _a.autoStale) === null || _b === void 0 ? void 0 : _b.resetOn) {
+            if (github_1.getLabels().indexOf(constants_1.LABEL_STALE) === -1) {
+                return;
+            }
             for (const resetEventsActions of governance.automations.autoStale.resetOn) {
                 const [event = '', action = undefined, _ = []] = resetEventsActions.split('/');
                 if (utils_1.eventIs(event, action ? [action] : undefined)) {
