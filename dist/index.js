@@ -1691,10 +1691,11 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const github_1 = __nccwpck_require__(5928);
 const constants_1 = __nccwpck_require__(5105);
 const core = __importStar(__nccwpck_require__(2186));
+const github = __importStar(__nccwpck_require__(5438));
 const ACTION_STALE = 'stale';
 const ACTION_CLOSE = 'close';
 function autoStaleAndClose(config) {
-    var _a, _b;
+    var _a, _b, _c, _d;
     return __awaiter(this, void 0, void 0, function* () {
         core.info('Starting autoStaleAndClose');
         const client = github_1.initClient();
@@ -1708,10 +1709,10 @@ function autoStaleAndClose(config) {
             core.debug(`- thresholdBeforeStale ${thresholdBeforeStale}s`);
             //LF stale
             let issuesListResponse = yield client.issues.listForRepo({
-                owner: 'rr404',
-                repo: 'governanceTest',
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
                 state: 'open',
-                labels: `provide more details` //retrieve from config
+                labels: autoStaleActions.fromTag
             });
             let issuesList = issuesListResponse.data;
             // eslint-disable-next-line github/array-foreach
@@ -1723,23 +1724,28 @@ function autoStaleAndClose(config) {
                     actionsForIssues[issue.number] = ACTION_STALE;
                 }
             });
-            //LF close
-            issuesListResponse = yield client.issues.listForRepo({
-                owner: 'rr404',
-                repo: 'governanceTest',
-                state: 'open',
-                labels: `stale` //retrieve from config
-            });
-            issuesList = issuesListResponse.data;
-            // eslint-disable-next-line github/array-foreach
-            issuesList.forEach(issue => {
-                const issueUpdatedAt = new Date(issue.updated_at);
-                const issueInactivityPeriod = now.getTime() - issueUpdatedAt.getTime(); // Difference in seconds
-                core.debug(`- ${issue.title} inactive for ${issueInactivityPeriod}s`);
-                if (issueInactivityPeriod > thresholdBeforeStale) {
-                    actionsForIssues[issue.number] = ACTION_CLOSE;
-                }
-            });
+            if ((_d = (_c = config.issue) === null || _c === void 0 ? void 0 : _c.automations) === null || _d === void 0 ? void 0 : _d.autoClose) {
+                core.info(' > Checking for issues to close');
+                const autoCloseActions = config.issue.automations.autoClose;
+                const thresholdBeforeClose = ms(autoCloseActions.delay) / 1000; // threshold for stale in seconds
+                //LF close
+                issuesListResponse = yield client.issues.listForRepo({
+                    owner: github.context.repo.owner,
+                    repo: github.context.repo.repo,
+                    state: 'open',
+                    labels: autoCloseActions.fromTag
+                });
+                issuesList = issuesListResponse.data;
+                // eslint-disable-next-line github/array-foreach
+                issuesList.forEach(issue => {
+                    const issueUpdatedAt = new Date(issue.updated_at);
+                    const issueInactivityPeriod = now.getTime() - issueUpdatedAt.getTime(); // Difference in seconds
+                    core.debug(`- ${issue.title} inactive for ${issueInactivityPeriod}s`);
+                    if (issueInactivityPeriod > thresholdBeforeClose) {
+                        actionsForIssues[issue.number] = ACTION_CLOSE;
+                    }
+                });
+            }
             for (const [issueNumber, action] of Object.entries(actionsForIssues)) {
                 switch (action) {
                     case ACTION_CLOSE:
