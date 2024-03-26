@@ -633,16 +633,18 @@ exports.getGovernance = getGovernance;
  */
 function runGovernance() {
     return __awaiter(this, void 0, void 0, function* () {
+        core.info('main: runGovernance Starts!');
         const governance = yield getGovernance();
-        core.info('main: fetched governance.yml');
+        core.debug('    > fetched governance from config');
         if (!governance) {
+            core.debug('    > no governance found, exiting');
             return;
         }
         core.info('main: parsing commands');
         const commands = yield command_1.default();
         core.info('main: running operations');
         yield operators_1.default(governance, commands);
-        core.info('main: completed operations');
+        core.info('main: runGovernance Completed!');
     });
 }
 exports.runGovernance = runGovernance;
@@ -651,19 +653,26 @@ exports.runGovernance = runGovernance;
  */
 function runSchedules() {
     return __awaiter(this, void 0, void 0, function* () {
+        core.info('runSchedules Starts!');
+        core.debug('    > getting config');
         const configPath = core.getInput('config-path', { required: true });
+        core.debug(`    > configPath = ${configPath}`);
         const config = yield config_1.getConfig(github_1.initClient(), configPath);
-        core.info('main: running schedules');
+        core.debug('    > running schedules');
         yield schedules_1.default(config);
-        core.info('main: completed schedules');
+        core.info('runSchedules Completed!');
     });
 }
 exports.runSchedules = runSchedules;
 /* eslint github/no-then: off */
+core.debug('Starting...');
+core.debug('About to run ignore workflow');
 ignore_1.default()
     .then((toIgnore) => __awaiter(void 0, void 0, void 0, function* () {
-    if (toIgnore)
+    if (toIgnore) {
+        core.debug('ignore was triggered. exiting...');
         return;
+    }
     if (github.context.eventName === 'schedule') {
         yield runSchedules();
     }

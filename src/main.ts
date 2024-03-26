@@ -43,10 +43,12 @@ export async function getGovernance(): Promise<Governance | undefined> {
  * Get governance config, parse and run commands from context.
  */
 export async function runGovernance(): Promise<void> {
+  core.info('main: runGovernance Starts!')
   const governance = await getGovernance()
-  core.info('main: fetched governance.yml')
+  core.debug('    > fetched governance from config')
 
   if (!governance) {
+    core.debug('    > no governance found, exiting')
     return
   }
 
@@ -55,25 +57,33 @@ export async function runGovernance(): Promise<void> {
 
   core.info('main: running operations')
   await operations(governance, commands)
-  core.info('main: completed operations')
+  core.info('main: runGovernance Completed!')
 }
 
 /**
  * Get governance config, parse and run commands from context.
  */
 export async function runSchedules(): Promise<void> {
+  core.info('runSchedules Starts!')
+  core.debug('    > getting config')
   const configPath = core.getInput('config-path', {required: true})
+  core.debug(`    > configPath = ${configPath}`)
   const config: Config = await getConfig(initClient(), configPath)
 
-  core.info('main: running schedules')
+  core.debug('    > running schedules')
   await schedules(config)
-  core.info('main: completed schedules')
+  core.info('runSchedules Completed!')
 }
 
 /* eslint github/no-then: off */
+core.debug('Starting...')
+core.debug('About to run ignore workflow')
 ignore()
   .then(async toIgnore => {
-    if (toIgnore) return
+    if (toIgnore) {
+      core.debug('ignore was triggered. exiting...')
+      return
+    }
 
     if (github.context.eventName === 'schedule') {
       await runSchedules()

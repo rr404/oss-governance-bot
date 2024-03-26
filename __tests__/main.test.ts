@@ -183,7 +183,7 @@ describe('runGovernance', () => {
 
     const {runGovernance} = require('../src/main')
     await runGovernance()
-    await expect(info).toHaveBeenCalledWith('main: completed operations')
+    await expect(info).toHaveBeenCalledWith('main: runGovernance Completed!')
     await expect(intercepted).toHaveBeenCalled()
   })
 
@@ -200,7 +200,7 @@ describe('runGovernance', () => {
 
     const {runGovernance} = require('../src/main')
     await runGovernance()
-    await expect(info).toHaveBeenCalledWith('main: completed operations')
+    await expect(info).toHaveBeenCalledWith('main: runGovernance Completed!')
     await expect(intercepted).toHaveBeenCalled()
   })
 
