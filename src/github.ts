@@ -35,6 +35,7 @@ export async function addLabels(
   if (!labels.length) return
 
   core.info('github-client: addLabels')
+  core.debug(`Adding labels: ${labels.join(', ')}`)
   const client = initClient()
 
   await client.issues.addLabels({

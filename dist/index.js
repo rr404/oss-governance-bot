@@ -380,6 +380,7 @@ function addLabels(labels, issueNumber) {
         if (!labels.length)
             return;
         core.info('github-client: addLabels');
+        core.debug(`Adding labels: ${labels.join(', ')}`);
         const client = initClient();
         yield client.issues.addLabels({
             owner: github.context.repo.owner,
