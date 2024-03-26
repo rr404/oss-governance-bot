@@ -13,7 +13,13 @@ import {initClient} from './github'
 export async function getGovernance(): Promise<Governance | undefined> {
   const configPath = core.getInput('config-path', {required: true})
   core.debug(`    > configPath = ${configPath}`)
-  const config: Config = await getConfig(initClient(), configPath)
+  core.debug(`    > init ghClient`)
+  const ghClient = initClient()
+  core.debug(`    > getConfig`)
+  core.debug(
+    `getcontest with context: ${github.context.repo.owner} - ${github.context.repo.repo} - ${github.context.sha}`
+  )
+  const config: Config = await getConfig(ghClient, configPath)
   core.debug('Config is: ')
   core.debug(JSON.stringify(config))
   core.debug('Context is: ')

@@ -606,7 +606,11 @@ function getGovernance() {
     return __awaiter(this, void 0, void 0, function* () {
         const configPath = core.getInput('config-path', { required: true });
         core.debug(`    > configPath = ${configPath}`);
-        const config = yield config_1.getConfig(github_1.initClient(), configPath);
+        core.debug(`    > init ghClient`);
+        const ghClient = github_1.initClient();
+        core.debug(`    > getConfig`);
+        core.debug(`getcontest with context: ${github.context.repo.owner} - ${github.context.repo.repo} - ${github.context.sha}`);
+        const config = yield config_1.getConfig(ghClient, configPath);
         core.debug('Config is: ');
         core.debug(JSON.stringify(config));
         core.debug('Context is: ');
